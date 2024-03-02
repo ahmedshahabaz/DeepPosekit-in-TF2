@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from tensorflow.python.keras.saving import save
-import tensorflow as tf
+import tensorflow
 
 import h5py
 import json
@@ -48,6 +48,7 @@ CUSTOM_LAYERS = {
     "SubPixelDownscaling": SubPixelDownscaling,
     "SubPixelUpscaling": SubPixelUpscaling,
     "ImageNetPreprocess": ImageNetPreprocess,
+    #'BatchNormalization': tensorflow.keras.layers.BatchNormalization,
 }
 
 
@@ -77,21 +78,24 @@ def load_model(path, generator=None, augmenter=None, custom_objects=None, compil
     else:
         raise TypeError("file must be type `str`")
 
-    #train_model = tf.keras.models.load_model(filepath, custom_objects=custom_objects, compile=compile)
+    train_model = tensorflow.keras.models.load_model(filepath, custom_objects=custom_objects, compile=compile)
+    #train_model = save.load_model(filepath, custom_objects=custom_objects, compile=compile)
 
     with h5py.File(filepath, "r") as h5file:
         train_generator_config = h5file.attrs.get("train_generator_config")
         if train_generator_config is None:
             raise ValueError("No data generator found in config file")
+        train_generator_config = json.loads(train_generator_config)
+        '''
         train_generator_config = json.loads(train_generator_config.decode("utf-8"))[
             "config"
         ]
-
+        '''
         model_config = h5file.attrs.get("pose_model_config")
         if model_config is None:
             raise ValueError("No pose model found in config file")
-        model_name = json.loads(model_config.decode("utf-8"))["class_name"]
-        model_config = json.loads(model_config.decode("utf-8"))["config"]
+        model_name = json.loads(model_config)#.decode("utf-8"))["class_name"]
+        model_config = json.loads(model_config)#.decode("utf-8"))["config"]
 
     if generator is not None:
         signature = inspect.signature(TrainingGenerator.__init__)
@@ -99,21 +103,21 @@ def load_model(path, generator=None, augmenter=None, custom_objects=None, compil
         keys.remove("self")
         keys.remove("augmenter")
         keys.remove("generator")
-        kwargs = {key: train_generator_config[key] for key in keys}
+        kwargs = {key: train_generator_config['config'][key] for key in keys}
         kwargs["augmenter"] = augmenter
         kwargs["generator"] = generator
         train_generator = TrainingGenerator(**kwargs)
     else:
         train_generator = None
 
-    Model = MODELS[model_name]
+    Model = MODELS[model_name['class_name']]
     signature = inspect.signature(Model.__init__)
     keys = [key for key in signature.parameters.keys()]
     keys.remove("self")
     keys.remove("train_generator")
     if "kwargs" in keys:
         keys.remove("kwargs")
-    kwargs = {key: model_config[key] for key in keys}
+    kwargs = {key: model_config['config'][key] for key in keys}
     kwargs["train_generator"] = train_generator
 
     # Pass to skip initialization and manually intialize
@@ -122,13 +126,13 @@ def load_model(path, generator=None, augmenter=None, custom_objects=None, compil
     model = Model(**kwargs)
     model.train_model = train_model
     model.__init_train_model__()
-    model.__init_input__(model_config["image_shape"])
+    model.__init_input__(model_config['config']["image_shape"])
 
     kwargs = {}
-    kwargs["output_shape"] = model_config["output_shape"]
-    kwargs["keypoints_shape"] = model_config["keypoints_shape"]
-    kwargs["downsample_factor"] = model_config["downsample_factor"]
-    kwargs["output_sigma"] = model_config["output_sigma"]
+    kwargs["output_shape"] = model_config['config']["output_shape"]
+    kwargs["keypoints_shape"] = model_config['config']["keypoints_shape"]
+    kwargs["downsample_factor"] = model_config['config']["downsample_factor"]
+    kwargs["output_sigma"] = model_config['config']["output_sigma"]
     model.__init_predict_model__(**kwargs)
 
     return model

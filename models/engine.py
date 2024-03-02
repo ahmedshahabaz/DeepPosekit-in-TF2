@@ -17,7 +17,8 @@ import numpy as np
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input
 import warnings
-
+import tensorflow as tf
+import keras
 from deepposekit.models.layers.subpixel import SubpixelMaxima2D
 from deepposekit.models.layers.convolutional import Maxima2D
 from deepposekit.utils.image import largest_factor
@@ -25,11 +26,11 @@ from deepposekit.utils.keypoints import keypoint_errors
 from deepposekit.models.saving import save_model
 
 
-class BaseModel(Model):
+class BaseModel():
     def __init__(self, train_generator=None, subpixel=False, **kwargs):
 
         #super().__init__()
-        super(BaseModel, self).__init__()
+        #super(BaseModel, self).__init__()
 
         self.train_generator = train_generator
         self.subpixel = subpixel
@@ -148,7 +149,8 @@ class BaseModel(Model):
                 """\nAutomatically compiling with default settings: model.compile('adam', 'mse')\n"""
                 "Call model.compile() manually to use non-default settings.\n"
             )
-            self.train_model.compile("adam", "mse")
+            #self.train_model.compile("Adam", "mse")
+            self.train_model.compile(optimizer = keras.optimizers.legacy.Adam(), loss = keras.losses.MeanSquaredError())
 
         train_generator = self.train_generator(
             self.n_outputs, batch_size, validation=False, confidence=True
@@ -232,7 +234,10 @@ class BaseModel(Model):
 
         return evaluation_dict
 
-    def save(self, path, overwrite=True):
+    def save(self, path, overwrite=True, options = None):
+        save_model(self, path)
+
+    def save_weights(self, path, options=None, overwrite=True):
         save_model(self, path)
 
     def get_config(self):

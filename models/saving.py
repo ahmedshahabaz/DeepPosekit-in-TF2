@@ -21,11 +21,6 @@ from deepposekit.utils.io import get_json_type
 
 def save_model(model, path, optimizer=True):
 
-    print()
-    print("*************************************\n I am effing here!!!!\n*************************************")
-    print()
-
-
     if isinstance(path, str):
         if path.endswith(".h5") or path.endswith(".hdf5"):
             filepath = path
@@ -34,10 +29,8 @@ def save_model(model, path, optimizer=True):
     else:
         raise TypeError("file must be type `str`")
 
-    #save.save_model(model.train_model, path, include_optimizer=optimizer)
-    #save.save_model(model.train_model, path)
-
-    model.train_model.save(path)
+    #model.train_model.save(path)
+    save.save_model(model.train_model, path, include_optimizer=optimizer)
 
     with h5py.File(filepath, "r+") as h5file:
 

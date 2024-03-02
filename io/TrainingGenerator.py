@@ -96,6 +96,7 @@ class TrainingGenerator(Sequence):
             np.random.seed(self.random_seed)
 
         self.shuffle = shuffle
+        self.downsample_factor = 2
 
         if isinstance(downsample_factor, int):
             if downsample_factor >= 0:
